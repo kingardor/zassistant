@@ -13,7 +13,6 @@ RUN apt-get update && \
         pkg-config \
         python3-dev \
         python3-pip \
-        python3-setuptools \
         python3-tk \
         redis-server \
         tree  \
@@ -21,28 +20,11 @@ RUN apt-get update && \
         && \
         rm -rf /var/lib/apt/lists/* && \
         apt autoremove
-
-RUN pip3 install --no-cache-dir \
-        torch \
-        torchvision \
-        --index-url https://download.pytorch.org/whl/cu124
-        
+  
 RUN pip3 install --no-cache-dir \
         opencv_python \
-        pillow \
-        scipy \
-        matplotlib \
         customtkinter \
         redis
-
-RUN pip3 install --no-cache-dir \
-        transformers \
-        openai \
-        bitsandbytes \
-        accelerate \
-        optimum \
-        auto-gptq \
-        sacremoses
 
 RUN pip3 install --no-cache-dir \
         langchain \
