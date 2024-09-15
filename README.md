@@ -3,6 +3,15 @@ Z by HP Intelligent Conversational Assistant that helps in selecting the right p
 
 ## Run the application
 
+### 1. Setup display
+
 ```sh
-docker compose up
+export DISPLAY=:0
+xhost +
+```
+
+### 2. Run Docker Compose
+
+```sh
+docker compose up --build --remove-orphans
 ```
