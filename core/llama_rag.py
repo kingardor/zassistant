@@ -8,10 +8,15 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from rag import RAG
 import promptquality as pq
 
-from keys import GALILEO_API_KEY
-os.environ['GALILEO_API_KEY'] = GALILEO_API_KEY
-galileo_url = "https://console.hp.galileocloud.io/"
-pq.login(galileo_url)
+try:
+    from keys import GALILEO_API_KEY
+    os.environ['GALILEO_API_KEY'] = GALILEO_API_KEY
+    galileo_url = "https://console.hp.galileocloud.io/"
+    pq.login(galileo_url)
+except:
+    print("Galileo API key not found")
+    import sys
+    sys.exit(1)
 
 class OllamaRag:
     def __init__(self):
@@ -100,16 +105,11 @@ class OllamaRag:
                 pq.Scorers.sexist]
         )
     
-    def get_prompt_quality_results(self):
-        rows = pq.get_rows()
-        for r in rows:
-            if r.node_type=='chat':
-                print(r, flush=True)
-                print('---', flush=True)
-
-        
-
     def exec(self, query: str):
+        if query == '/promptquality':
+            self.prompt_handler.finish()
+            return "Prompt quality evaluation has been completed"
+        
         response = self.chain.invoke(
             {   
                 'chat_history': self.chat_history,
@@ -121,8 +121,5 @@ class OllamaRag:
         self.chat_history.extend([
             HumanMessage(content=query), response['answer']
         ])
-
-        self.prompt_handler.finish()
-        self.get_prompt_quality_results()
 
         return response['answer']

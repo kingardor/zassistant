@@ -15,3 +15,9 @@ xhost +
 ```sh
 docker compose up --build --remove-orphans
 ```
+
+## Notes
+
+- Use `/promptquality` to run prompt quality anytime between a conversation
+
+-  Load up time with boost can be long, please be patient. 
