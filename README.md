@@ -18,6 +18,7 @@ docker compose up --build --remove-orphans
 
 ## Notes
 
+- Set `BOOST` as `'1'` in `docker-compose.yml` to use Boost
+- Load up time with boost can be long, please be patient. 
 - Use `/promptquality` to run prompt quality anytime between a conversation
 
--  Load up time with boost can be long, please be patient. 

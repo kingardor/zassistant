@@ -20,12 +20,8 @@ services:
       OLLAMA_KEEP_ALIVE: '1h'
       OLLAMA_HOST: '0.0.0.0'
       OLLAMA_LOAD_TIMEOUT: '1h'
+      BOOST: '0'
       BOOST_GPU_ID: 'e47e046e-6c41-fea0-c46a-1da1f32e57d0'
-    expose:
-      - 11434/tcp
-    ports:
-      - "11434:11434/tcp"
-      - "6379:6379"
     network_mode: host
     deploy:
       resources:

@@ -3,12 +3,21 @@
 # Start redis
 redis-server --daemonize yes
 
-# Workstation
-# /cf/hpcf session request --gpu-ids $BOOST_GPU_ID --session-timeout 3600
+if [ $BOOST == 0 ]; then
+  echo "Using local GPU.."
+  ollama serve &
 
-echo "Starting Ollama server..."
-# OLLAMA_LOAD_TIMEOUT=1h OLLAMA_KEEP_ALIVE=1h /cf/hpcf run ollama serve &
-ollama serve &
+else
+  echo "Using Boost.."
+  
+  /cf/hpcf session request \
+  --gpu-ids $BOOST_GPU_ID \
+  --session-timeout 3600
+  
+  echo "Starting Ollama server..."
+  OLLAMA_LOAD_TIMEOUT=1h OLLAMA_KEEP_ALIVE=1h /cf/hpcf \
+  run ollama serve &
+fi
 
 sleep 2
 
@@ -17,5 +26,8 @@ while [ "$(ollama list | grep 'NAME')" == "" ]; do
   sleep 1
 done
 
-# /cf/hpcf run python3 zassistant.py
-python3 zassistant.py
+if [ $BOOST == 1 ]; then
+  /cf/hpcf run python3 zassistant.py
+else
+  python3 zassistant.py
+fi
