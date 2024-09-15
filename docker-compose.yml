@@ -1,0 +1,36 @@
+services:
+  zassistant:
+    build:
+      context: .
+      dockerfile: docker/zassistant/Dockerfile
+      target: zassistant
+    container_name: ZASSISTANT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /tmp/.X11-unix/:/tmp/.X11-unix
+      - /opt/hpcf:/cf
+      - "/home/kn1ght/.config/HP Compute Fabric:/root/.config/HP Compute Fabric"
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      DISPLAY: $DISPLAY
+      LOG_LEVEL: 'debug'
+      LANGMODEL: 'ollama-rag'
+      OLLAMA_KEEP_ALIVE: '1h'
+      OLLAMA_HOST: '0.0.0.0'
+      OLLAMA_LOAD_TIMEOUT: '1h'
+      BOOST_GPU_ID: 'e47e046e-6c41-fea0-c46a-1da1f32e57d0'
+    expose:
+      - 11434/tcp
+    ports:
+      - "11434:11434/tcp"
+      - "6379:6379"
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
