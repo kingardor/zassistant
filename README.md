@@ -32,30 +32,28 @@ The model can run on your own GPU, or on an idle GPU borrowed from a Z workstati
 
 ## 📸 Screenshots
 
-| Light | Dark |
-|:---:|:---:|
-| ![Conversation in light theme](docs/screenshots/chat-light.png) | ![Conversation in dark theme](docs/screenshots/chat-dark.png) |
+### Conversation
+
+Answers stream in with formatting. Each one shows the GPU that produced it, how long it took, and the source document and page.
+
+![Conversation with streamed answers, Boost GPU timing and source pages](docs/screenshots/chat-light.png)
 
 ### Boost startup
 
 The UI opens straight away and shows each startup step live, with timings: the Boost session, Ollama on the remote GPU, the model loading, and the documents being indexed. If a step fails, it says which one and why.
 
-| Light | Dark |
-|:---:|:---:|
-| ![Boost startup screen in light theme](docs/screenshots/boot-light.png) | ![Boost startup screen in dark theme](docs/screenshots/boot-dark.png) |
+![Boost startup screen showing each step with timings](docs/screenshots/boot-light.png)
 
 ### Boost status
 
 Click the **Boosted** pill to see the remote GPU, the model, the knowledge base, answer stats and the time left in the Boost session.
 
-<p align="center">
-  <img src="docs/screenshots/boost-popover-dark.png" alt="Boost details popover in dark theme" width="80%">
-</p>
+![Boost details popover with GPU, model, answer stats and session time left](docs/screenshots/boost-popover-light.png)
 
 ### Mobile
 
 <p align="center">
-  <img src="docs/screenshots/mobile-dark.png" alt="Z Assistant on a phone-sized screen in dark theme" width="300">
+  <img src="docs/screenshots/mobile-light.png" alt="Z Assistant on a phone-sized screen" width="320">
 </p>
 
 <sub>Screenshots are from the built-in demo mode, so the answers, timings and page numbers are sample data.</sub>
