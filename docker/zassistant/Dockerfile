@@ -13,7 +13,6 @@ RUN apt-get update && \
         pkg-config \
         python3-dev \
         python3-pip \
-        python3-tk \
         redis-server \
         tree  \
         wget \
@@ -22,8 +21,7 @@ RUN apt-get update && \
         apt autoremove
   
 RUN pip3 install --no-cache-dir \
-        opencv_python \
-        customtkinter \
+        flask \
         redis
 
 RUN pip3 install --no-cache-dir \
@@ -64,11 +62,14 @@ RUN chmod +x hfembeddings-pull.sh && \
 
 COPY zhp-info /app/zhp-info
 COPY core /app/core
-COPY zassistant.py /app/zassistant.py 
+COPY web /app/web
+COPY server.py /app/server.py
+COPY zassistant.py /app/zassistant.py
 COPY run.sh /app/run.sh
 
 RUN chmod +x run.sh
 
+EXPOSE 8080
 EXPOSE 11434
 EXPOSE 6379
 

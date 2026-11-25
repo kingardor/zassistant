@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Z Assistant</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Apply the saved theme before first paint (no light/dark flash).
+    (function () {
+      var t = localStorage.getItem('z-theme');
+      if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+  <link rel="preload" href="fonts/Inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+  <!-- Boost startup screen: shown until the worker reports ready -->
+  <section id="boot" class="boot" aria-labelledby="boot-title">
+    <div class="boot-card">
+      <div class="logo-mark logo-mark--lg" aria-hidden="true">Z</div>
+      <h1 id="boot-title">Starting Z Assistant</h1>
+      <p id="boot-sub" class="boot-sub">Getting everything ready.</p>
+
+      <div class="route" id="boot-route" aria-hidden="true">
+        <span class="route-node"><span class="route-ic"><svg class="i"><use href="icons.svg#laptop"/></svg></span><span>This device</span></span>
+        <span class="route-wire"></span>
+        <span class="route-node route-node--host"><span id="route-host-label">Z host GPU</span><span class="route-ic"><svg class="i"><use id="route-host-icon" href="icons.svg#server"/></svg></span></span>
+      </div>
+
+      <ol id="stages" class="stages" aria-live="polite"></ol>
+
+      <div class="boot-foot">
+        <span id="boot-elapsed" class="muted">Elapsed 0:00</span>
+        <span id="boot-hint" class="muted"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="app" id="app" inert>
+    <header class="topbar">
+      <a class="brand" href="#" id="brand" aria-label="Z Assistant, start a new chat">
+        <span class="logo-mark" aria-hidden="true">Z</span>
+        <span class="brand-name">Z Assistant</span>
+      </a>
+      <span id="demo-badge" class="demo-badge" hidden>Demo mode</span>
+
+      <div class="topbar-actions">
+        <div class="pill-wrap">
+          <button id="pill" class="pill" aria-expanded="false" aria-controls="popover" aria-haspopup="dialog">
+            <span class="pill-dot"><svg class="i"><use id="pill-icon" href="icons.svg#zap"/></svg></span>
+            <span class="pill-text"><b id="pill-title">Starting…</b><span id="pill-sub"></span></span>
+          </button>
+          <div id="popover" class="popover" role="dialog" aria-labelledby="pop-title" hidden>
+            <h2 id="pop-title">Running on Z by HP Boost</h2>
+            <p id="pop-body"></p>
+            <div id="pop-route" class="route route--compact" aria-hidden="true">
+              <span class="route-node"><span class="route-ic"><svg class="i"><use href="icons.svg#laptop"/></svg></span></span>
+              <span class="route-wire"></span>
+              <span class="route-node route-node--host"><span class="route-ic"><svg class="i"><use href="icons.svg#server"/></svg></span></span>
+            </div>
+            <dl id="pop-facts" class="facts"></dl>
+            <div id="pop-session" class="session" hidden>
+              <div class="session-row"><span>Boost session</span><span id="pop-session-left" class="mono"></span></div>
+              <div class="meter" role="progressbar" aria-label="Boost session time remaining" aria-valuemin="0" aria-valuemax="100" id="pop-meter"><i></i></div>
+            </div>
+            <div class="pop-actions">
+              <button class="btn" id="quality-btn"><svg class="i"><use href="icons.svg#shield"/></svg>Run quality check</button>
+            </div>
+            <p class="pop-note" id="pop-note"></p>
+          </div>
+        </div>
+
+        <button class="icon-btn" id="theme-btn" aria-label="Switch to dark theme">
+          <svg class="i"><use id="theme-icon" href="icons.svg#moon"/></svg>
+        </button>
+        <button class="btn" id="new-btn"><svg class="i"><use href="icons.svg#plus"/></svg><span class="hide-sm">New chat</span></button>
+      </div>
+    </header>
+
+    <main id="scroll" class="scroll">
+      <div class="wrap">
+        <section id="hero" class="hero" aria-labelledby="hero-title">
+          <h1 id="hero-title">Find the right Z workstation, <em>in a conversation.</em></h1>
+          <p id="hero-sub">Tell Z what you create. It answers from Z by HP product documents.</p>
+          <div class="intents">
+            <button class="intent" data-prompt="I work in AI and data science. Which Z workstation should I look at for training and running models?">
+              <span class="intent-ic"><svg class="i i-lg"><use href="icons.svg#spark"/></svg></span>
+              <span class="intent-txt"><b>AI &amp; data science</b><span>Train, fine-tune, run LLMs</span></span>
+              <span class="intent-go">Ask <svg class="i"><use href="icons.svg#chev"/></svg></span>
+            </button>
+            <button class="intent" data-prompt="I'm a video editor and VFX artist. Which Z workstation suits 8K editing and rendering?">
+              <span class="intent-ic"><svg class="i i-lg"><use href="icons.svg#film"/></svg></span>
+              <span class="intent-txt"><b>Video &amp; VFX</b><span>8K editing, rendering</span></span>
+              <span class="intent-go">Ask <svg class="i"><use href="icons.svg#chev"/></svg></span>
+            </button>
+            <button class="intent" data-prompt="I do CAD, engineering and simulation work. Which Z workstation is the best fit?">
+              <span class="intent-ic"><svg class="i i-lg"><use href="icons.svg#layers"/></svg></span>
+              <span class="intent-txt"><b>CAD &amp; engineering</b><span>Simulation, BIM, design</span></span>
+              <span class="intent-go">Ask <svg class="i"><use href="icons.svg#chev"/></svg></span>
+            </button>
+            <button class="intent" data-prompt="What is Z by HP Boost and how does it work?">
+              <span class="intent-ic"><svg class="i i-lg"><use href="icons.svg#zap"/></svg></span>
+              <span class="intent-txt"><b>What is Boost?</b><span>Share GPUs over the network</span></span>
+              <span class="intent-go">Ask <svg class="i"><use href="icons.svg#chev"/></svg></span>
+            </button>
+          </div>
+        </section>
+
+        <section id="thread" class="thread" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></section>
+      </div>
+    </main>
+
+    <form id="composer" class="composer" autocomplete="off">
+      <div class="box">
+        <label class="sr" for="input">Message Z</label>
+        <textarea id="input" rows="1" maxlength="4000" placeholder="Describe your work, budget or software…"></textarea>
+        <button type="submit" id="send" class="send" aria-label="Send">
+          <svg class="i i-lg"><use id="send-icon" href="icons.svg#send"/></svg>
+        </button>
+      </div>
+      <p class="disclaimer"><span class="hide-sm"><kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · </span>Z can make mistakes. Check specs with HP before you buy.</p>
+    </form>
+  </div>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

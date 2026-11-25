@@ -1,90 +1,97 @@
+"""Z Assistant LLM worker.
+
+Loads the model and the Z by HP document index, then answers jobs that the web
+server (server.py) queues in Redis. Progress is written to the ``z:status``
+hash so the browser can show the Boost startup screen.
+
+Run by run.sh, under ``hpcf run`` when Boost is enabled.
+"""
 import sys
 sys.path.insert(1, 'core')
 import os
+import json
 import time
 import redis
 import traceback
 
-from threading import Thread
+from status import Status
 
-# LLMS
-from llama_rag import OllamaRag
+JOBS_KEY = 'z:jobs'
 
-# UI
-from ui import UserInterface
 
 class ZAssistant:
-    def start_threads(self) -> None:
-        # Start the LLM thread
-        print('Starting LLM thread', flush=True)
-        llm_thread = Thread(target=self.llm_thread)
-        llm_thread.daemon = True
-        llm_thread.start()
-        print('LLM thread started', flush=True)
-
-    def llm_thread(self) -> None:
-        
-        def _prompt_handling(llm_input: str) -> None:
-            response = self.llm.exec(llm_input)
-            print("Z: {}".format(response), flush=True)
-            self.cache.set('response', response)
-            self.ui.add_text('Z', response)
-                
-        while True:
-            speaker = 'USER'
-            try:
-                user_input = self.cache.get('prompt').decode('utf-8')
-                if '[TEXT]' in user_input:   
-                    user_input = user_input.replace('[TEXT]', '')
-                self.ui.add_text(speaker, user_input)
-                print("{}: {}".format(speaker, user_input), flush=True)
-                self.cache.delete('prompt')
-            except:
-                user_input = None
-
-            if user_input is not None:
-                try:                    
-                    if user_input == 'Bye.' or user_input == 'Thank you.' or user_input == 'Thank you for watching.':
-                        continue
-                    _prompt_handling(user_input)
-                except:
-                    print('Error processing user input', flush=True)
-                    traceback.print_exc()
-            
-            time.sleep(0.5)
-
     def __init__(self) -> None:
-
-        self.cache = None
+        self.cache = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        self.status = Status(self.cache)
+        self.mode = 'boost' if os.environ.get('BOOST') == '1' else 'local'
         self.llm = None
-        self.ui = None
 
-        self.langmodel = os.environ.get('LANGMODEL')
-
-        # Initialize the cache
-        print('Initializing cache', flush=True)
-        self.cache = redis.Redis(
-            host='localhost', 
-            port=6379, 
-            db=0
-        )
-
-        # Initialize the language model
-        if self.langmodel == "ollama-rag":
-            print('Loading Ollama RAG', flush=True)
-            self.llm = OllamaRag()
-            print('Ollama RAG loaded', flush=True)
-        else:
+    def boot(self) -> None:
+        if os.environ.get('LANGMODEL') != 'ollama-rag':
+            self.status.fail('model', 'Invalid LANGMODEL (expected ollama-rag)')
             raise ValueError("Invalid language model")
 
-        # Initialise UI
-        print('Initializing UI', flush=True)
-        self.ui = UserInterface()
-        print('UI initialized', flush=True)
+        # Imported here so a crash in heavy imports is still reported to the UI
+        from llama_rag import OllamaRag, warm_model, MODEL
+        from rag import RAG
 
-        # Start threads
-        self.start_threads()
+        print('Loading model', flush=True)
+        self.status.begin('model', MODEL)
+        warm_model(MODEL)
+        self.status.done('model', MODEL)
+
+        print('Indexing documents', flush=True)
+        self.status.begin('index', 'Z by HP documents')
+        rag = RAG()
+        pages = sum(d['pages'] for d in rag.docs)
+        self.status.done('index', f"{len(rag.docs)} PDFs · {pages} pages")
+
+        self.llm = OllamaRag(rag)
+        self.status.ready(rag.docs)
+        print('Z Assistant ready', flush=True)
+
+    def publish(self, job_id: str, event: dict) -> None:
+        self.cache.publish(f'z:stream:{job_id}', json.dumps(event))
+
+    def handle(self, job: dict) -> None:
+        job_id, kind = job['id'], job.get('type', 'chat')
+        text = job.get('text', '').strip()
+
+        if kind == 'reset' or text == '/new':
+            self.llm.reset()
+            self.publish(job_id, {'type': 'done'})
+            return
+        if kind == 'quality' or text in ('/quality', '/promptquality'):
+            self.publish(job_id, {'type': 'token', 'text': self.llm.quality()})
+            self.publish(job_id, {'type': 'done'})
+            return
+
+        print(f"USER: {text}", flush=True)
+        start = time.time()
+        for event in self.llm.stream(text):
+            self.publish(job_id, event)
+        ms = int((time.time() - start) * 1000)
+        self.status.record_answer(ms)
+        self.publish(job_id, {'type': 'done', 'ms': ms, 'compute': self.mode})
+
+    def serve(self) -> None:
+        while True:
+            _, raw = self.cache.blpop(JOBS_KEY)
+            job = json.loads(raw)
+            try:
+                self.handle(job)
+            except Exception as exc:
+                traceback.print_exc()
+                self.publish(job['id'], {'type': 'error', 'message': f'Something went wrong: {exc}'})
+
 
 if __name__ == "__main__":
-    zassistant = ZAssistant()
-    zassistant.ui.start_ui()
+    z = ZAssistant()
+    try:
+        z.boot()
+    except Exception as exc:
+        traceback.print_exc()
+        if not z.cache.hget('z:status', 'error'):
+            z.status.fail(z.status.current or 'model', f'Startup failed: {exc}')
+        sys.exit(1)
+    z.serve()

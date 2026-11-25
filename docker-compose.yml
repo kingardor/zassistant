@@ -8,13 +8,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
-      - /tmp/.X11-unix/:/tmp/.X11-unix
       - /opt/hpcf:/cf
       - "/home/kn1ght/.config/HP Compute Fabric:/root/.config/HP Compute Fabric"
     security_opt:
       - seccomp:unconfined
     environment:
-      DISPLAY: $DISPLAY
+      PORT: '8080'
       LOG_LEVEL: 'debug'
       LANGMODEL: 'ollama-rag'
       OLLAMA_KEEP_ALIVE: '1h'
